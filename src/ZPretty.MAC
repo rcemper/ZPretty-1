@@ -5,6 +5,12 @@ ZPretty ; make JSON readable
 #define fill "  "
 #; New line code   ; "" => no Lines
 #define crlf $c(13,10)
+#if $e($ZV,1,4)="IRIS"
+#include %PVA
+#else
+#; stabilize Caché version
+#define JSONGetTypeOf(%object,%key) $CASE(%object.%GetTypeCodeOf(%key),0:"null",1:"boolean",2:"boolean",3:"number",4:"number",6:"array",7:"object",8:"string",9:"number",10:"illegalvalue",11:"number",12:"oref",13:"unassigned",14:"number",15:"number",16:"string",18:"number",19:"number",20:"string",31:"unassigned",:"UNKNOWN")
+#endif	
 
 Do(input,fil,nl) public {
     S fil=$g(fil,$$$fill),nl=$g(nl,$$$crlf), sc=1,res="",indt=""
@@ -17,27 +23,10 @@ Do(input,fil,nl) public {
     S res=res_$s(jtyp="object":"{",1:"["), indt=indt_fil
     F { S isito=ito.%IsA("%Iterator.Object")
         I ito.%GetNext(.key,.val) {
-	        if $e($ZV,1,5)="Cache" {
-		        S jtyp=$CASE(obj.%GetTypeCodeOf(key),0:"null"
-	                        ,1:"boolean",2:"boolean",3:"number",4:"number"
-	                        ,6:"array",7:"object",8:"string",9:"number"
-	                        ,10:"illegalvalue"
-	                        ,11:"number",12:"oref",13:"unassigned"
-	                        ,14:"number",15:"number",16:"string"
-	                        ,18:"number",19:"number",20:"string"
-	                        ,31:"unassigned",:"UNKNOWN")
-	        } else  {
-		       S jtyp=$CASE(obj.%GetTypeCodeOf(key)
-		       				,1:"unassigned",2:"null",3:"boolean"
-		       				,4:"boolean",5:"string",6:"string"
-		       				,7:"string",8:"string",9:"number"
-		       				,10:"number",11:"number",12:"number"
-		       				,13:"number",14:"number",15:"number"
-		       				,16:"oref",17:"array",18:"object"
-		       				,31:"unassigned",:"UNKNOWN")	                        
-			} 
-            S res=res_sep_nl_indt, sep="," }
-		Else {
+	        S jtyp=$$$JSONGetTypeOf(obj,key)
+			S res=res_sep_nl_indt
+			S sep="," 	}
+		Else  {
             S indt=$e(indt,1,*-$l(nl)), res=res_nl_indt, res=res_$s(isito:"}",1:"]")
             Q:'$i(stc,-1)
             S ito=ist(stc), obj=cst(stc), jtyp=tst(stc), sep=","
